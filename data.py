@@ -144,7 +144,7 @@ class ProcessData():
         ----------
             data - pd.DataFrame raw data
 
-         """                            
+        """                            
         self.path = path
         self.accuracy = accuracy
         self.norm_algorythm = norm_algorythm
@@ -186,9 +186,6 @@ class ProcessData():
     def add_corelation(self, period: int = 10): 
         """Add extra column (rolling corelation) to dataframe"""    
         self.__data[f'Corelation{period}'] = self.__data['Close'].rolling(period).mean()/self.__data['Close'].rolling(period).std()
-
-    def fibonacy(self):
-        pass
 
     def add_local_extrema(self):
         """Add extra column (local min and max categorical type) to dataframe"""
