@@ -84,6 +84,12 @@ class Analyzer():
 
 
 class Utils():
+    """
+    Набор полезных утилит для работы с данными.
+    
+    split data - разбивает базу данных на части (train, val, test) для последующей передачи нейронной сети
+    data_divider - помогает разбить данные на части
+    """
     @staticmethod
     def split_data(data : pd.DataFrame | np.ndarray, 
                 split: float, val : float | None = None
