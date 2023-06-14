@@ -159,12 +159,12 @@ Filtered matching ratio: 48%
 ### **model(#0010)**
 Модель имеет черты - ['Open','High', 'Low', 'Close', 'Volume', 'Average14' 'Deviation14']
 
-Predicted data analyzing:
-Mean loss (pt): 121
-Matching ratio: 48%
-Data filtered by column ['Prediction_diff']
-Condition: value > 121 | value < -121
-Data compression: 69%
+Predicted data analyzing:\
+Mean loss (pt): 121\
+Matching ratio: 48%\
+Data filtered by column ['Prediction_diff']\
+Condition: value > 121 | value < -121\
+Data compression: 69%\
 Filtered matching ratio: 47%
 
 Полный отстой
@@ -175,12 +175,12 @@ Filtered matching ratio: 47%
 ### **model(#0011)**
 Модель имеет черты - ['Open','High', 'Low', 'Close', 'Average14' 'Deviation14']
 
-Predicted data analyzing:
-Mean loss (pt): 100
-Matching ratio: 49%
-Data filtered by column ['Prediction_diff']
-Condition: value > 100 | value < -100
-Data compression: 71%
+Predicted data analyzing:\
+Mean loss (pt): 100\
+Matching ratio: 49%\
+Data filtered by column ['Prediction_diff']\
+Condition: value > 100 | value < -100\
+Data compression: 71%\
 Filtered matching ratio: 49%
 
 Полный отстой
@@ -191,12 +191,12 @@ Filtered matching ratio: 49%
 ### **model(#0012)**
 Модель имеет черты - ['Open','High', 'Low', 'Close', 'Average14' 'Deviation7']
 
-Predicted data analyzing:
-Mean loss (pt): 102
-Matching ratio: 48%
-Data filtered by column ['Pred_Close_diff']
-Condition: value > 102 | value < -102
-Data compression: 67%
+Predicted data analyzing:\
+Mean loss (pt): 102\
+Matching ratio: 48%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 102 | value < -102\
+Data compression: 67%\
 Filtered matching ratio: 47%
 
 Полный отстой
@@ -207,12 +207,12 @@ Filtered matching ratio: 47%
 ### **model(#0013)**
 Модель имеет черты - ['Open','High', 'Low', 'Close', 'Corelation14']
 
-Predicted data analyzing:
-Mean loss (pt): 108
-Matching ratio: 50%
-Data filtered by column ['Prediction_diff']
-Condition: value > 108 | value < -108
-Data compression: 66%
+Predicted data analyzing:\
+Mean loss (pt): 108\
+Matching ratio: 50%\
+Data filtered by column ['Prediction_diff']\
+Condition: value > 108 | value < -108\
+Data compression: 66%\
 Filtered matching ratio: 50%
 
 
@@ -222,12 +222,12 @@ Filtered matching ratio: 50%
 ### **model(#0014)**
 Модель имеет черты - ['Open','High', 'Low', 'Close', 'Local_min_max']
 
-Predicted data analyzing:
-Mean loss (pt): 96
-Matching ratio: 78%
-Data filtered by column ['Pred_Close_diff']
-Condition: value > 96 | value < -96
-Data compression: 61%
+Predicted data analyzing:\
+Mean loss (pt): 96\
+Matching ratio: 78%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 96 | value < -96\
+Data compression: 61%\
 Filtered matching ratio: 86%
 
 Супер!!
@@ -239,31 +239,31 @@ Filtered matching ratio: 86%
 ### **model(#0015)**
 Модель имеет черты - ['Open','High', 'Low', 'Close', 'Volume', 'Local_min_max']
 
-Predicted data analyzing:
-Mean loss (pt): 130
-Matching ratio: 62%
-Data filtered by column ['Pred_Close_diff']
-Condition: value > 130 | value < -130
-Data compression: 59%
+Predicted data analyzing:\
+Mean loss (pt): 130\
+Matching ratio: 62%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 130 | value < -130\
+Data compression: 59%\
 Filtered matching ratio: 72%
 
 Добавление черты "объем сделок по активу" ухидшило общие показатели относительно результатов model(#0014). Изменился и характер линии предсказаний: появились артефакты схожие с model(#0004). Таким образм, на основании испытаний моделей #0004, #0005, #0010, #0015, можно сделать вывод, что данная черта не является информативной и только добавляет лишний шум к линии предсказаний.
 
 ![Example](image/%23015_1.png)
-![Example](image/%23015_2.png
+![Example](image/%23015_2.png)
 
 ### **model(#0016)**
 Модель имеет черты - ['Open','High', 'Low', 'Close', 'Corelation14', 'Local_min_max']
 
-Predicted data analyzing:
-Mean loss (pt): 101
-Matching ratio: 73%
-Data filtered by column ['Pred_Close_diff']
-Condition: value > 101 | value < -101
-Data compression: 63%
+Predicted data analyzing:\
+Mean loss (pt): 101\
+Matching ratio: 73%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 101 | value < -101\
+Data compression: 63%\
 Filtered matching ratio: 78%
 
-Добавление черты "Corelation14" - не фантан
+Добавление черты "Corelation14" - не фонтан
 
 ![Example](image/%23016_1.png)
-![Example](image/%23016_2.png
+![Example](image/%23016_2.png)
