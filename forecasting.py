@@ -1,13 +1,13 @@
 from one_step_prediction import *
 
 #PATH_CONTR = f'data{os.sep}feed{os.sep}control_part.csv'
-PATH_CONTR = f'data{os.sep}feed{os.sep}data_30000-35000.csv'
+PATH_CONTR = f'data{os.sep}SPFB.Si_220511_230607_1d.csv'
 #PATH_CONTR = f'data{os.sep}feed{os.sep}data_35000-40000.csv'
 
 
-KERAS_MODEL_NAME = f'models{os.sep}model(#0035)_01'
+KERAS_MODEL_NAME = f'models{os.sep}model(#0036)'
 #CONT_PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0035_contr_part_01.csv'
-CONT_PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0035_data_30000-35000_01.csv'
+CONT_PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0036_SPFB.Si_220511_230607_1d.csv'
 #CONT_PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0035_data_35000-40000+.csv'
 
 
