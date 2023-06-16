@@ -387,10 +387,4 @@ class WindowGenerator():
 
 
 
-""" train_df, val_df, test_df = a.split_data()
-b = WindowGenerator(25,10,10, train_df=train_df, val_df=val_df, test_df=test_df, label_columns=['Close'])
-train_set, val_set, test_set = b.train, b.val, b.test
-b.plot(plot_col='Close')
-print('Hello') """
-   
     
