@@ -137,9 +137,7 @@ class ProcessData():
             relative path to csv data file
         accuracy : int
             rounded data values to ndigits precision after the decimal point
-        norm_algorythm : str
-            set algorythm for data normalization (default: None, available: 'std', 'minmax')   
-
+        
         Returns:
         ----------
             data - pd.DataFrame raw data
@@ -147,13 +145,11 @@ class ProcessData():
         """                            
         self.path = path
         self.accuracy = accuracy
-        self.norm_algorythm = norm_algorythm
-
+        self.plot_info = {
+            'subplot':[],
+            'plot':[]
+        }
         self.__data = self.__get_data()
-        self.std = self.__data.std()
-        self.mean = self.__data.mean()
-        self.min = self.__data.min()
-        self.max = self.__data.max()
         
 
     def __get_data(self):
@@ -177,69 +173,28 @@ class ProcessData():
 
     def add_rolling_average(self, period: int = 10):
         """Add extra column (rolling average) to dataframe"""
-        self.__data[f'Average{period}'] = self.__data['Close'].rolling(period).mean()   
+        self.__data[f'Average{period}'] = self.__data['Close'].rolling(period).mean()
+        self.plot_info['plot'].append(self.__data.columns[-1])    
 
     def add_standart_deviation(self, period: int = 10): 
         """Add extra column (rolling standart deviation) to dataframe"""    
         self.__data[f'Deviation{period}'] = self.__data['Close'].rolling(period).std()
+        self.plot_info['subplot'].append(self.__data.columns[-1])
 
     def add_corelation(self, period: int = 10): 
         """Add extra column (rolling corelation) to dataframe"""    
         self.__data[f'Corelation{period}'] = self.__data['Close'].rolling(period).mean()/self.__data['Close'].rolling(period).std()
+        self.plot_info['subplot'].append(self.__data.columns[-1])
 
-    def add_local_extrema(self):
-        """Add extra column (local min and max categorical type) to dataframe"""
-        ndarray = self.__data['Close'].to_numpy()
-        loc_max_indx = argrelextrema(ndarray, np.greater)
-        loc_min_indx = argrelextrema(ndarray, np.less)
-        self.__data['Loc_max'] = 0
-        for el in loc_max_indx:
-            self.__data.iloc[el, -1] = 1
-        self.__data['Loc_min'] = 0
-        for el in loc_min_indx:
-            self.__data.iloc[el, -1] = 1
+    def plot(self, volume: bool = False, from_date: str = None, to_date: str = None):
+        add = []
+        for col in self.plot_info['plot']:
+            add.append(mpf.make_addplot(self.data.loc[from_date:to_date, col]))
+        for col in self.plot_info['subplot']:
+            add.append(mpf.make_addplot(self.data.loc[from_date:to_date, col], panel=1))
 
-        self.__data['Loc_max'] = self.__data.Loc_max.astype('category')
-        self.__data['Loc_min'] = self.__data.Loc_min.astype('category')
-
-    def normalization(self, data : pd.DataFrame) -> pd.DataFrame:
-        if type(data).__name__ != 'NoneType':
-            norm_data = data.copy() 
-            for col in norm_data.columns:
-                if norm_data[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
-                    if self.norm_algorythm in ['std']:       
-                        self.mean[col] = data[col].mean()
-                        self.std[col] = data[col].std()
-                        norm_data[col] = (data[col] - self.mean[col])/self.std[col] 
-                    elif self.norm_algorythm in ['minmax']:            
-                        self.max[col] = data[col].max()
-                        self.min[col] = data[col].min()
-                        norm_data[col] = (data[col] - self.min[col])/(self.max[col]-self.min[col])
-                    else:
-                        sys.exit('No normalization algorythm found or given')
-            norm_data = norm_data.round(self.accuracy)
-            return norm_data
-        return 
-
-    def reverse_norm(self, data: pd.Series) -> pd.Series:
-        """Put predicted values and make reverse normalization  """   
-        name = data.name.removeprefix('Pred_')
-        if self.norm_algorythm in ['minmax']:
-            rn_data = data * (self.max[name]-self.min[name]) + self.min[name]
-        elif self.norm_algorythm in ['std']:
-            rn_data = data * self.std[name] + self.mean[name]
-
-        return rn_data
-
-    def plot(self, volume: bool = False, from_date: str = None, to_date: str = None, extra_columns: list = []):
-        if extra_columns:
-            add = []
-            for col in extra_columns:
-                add.append(mpf.make_addplot(self.data.loc[from_date:to_date, col]))
-            mpf.plot(self.data.loc[from_date:to_date,:], type='candle', volume=volume, warn_too_much_data=50000, addplot=(add))
-        else:
-            mpf.plot(self.data.loc[from_date:to_date,:], type='candle', volume=volume, warn_too_much_data=50000)
-
+        mpf.plot(self.data.loc[from_date:to_date,:], type='candle', volume=volume, warn_too_much_data=50000, addplot=(add))
+    
         mpf.show()
 
     def white_space(self, word):
@@ -265,6 +220,13 @@ class ProcessData():
 
         return info
 
+data = ProcessData('data\SPFB.Si_220511_230607_5min.csv', accuracy=6)  #get data from given csv file
+data.add_rolling_average(period=50)
+data.add_rolling_average()
+data.add_standart_deviation()
+data.add_standart_deviation(period=50)
+data.add_standart_deviation(period=25)
+data.plot()
 
 class WindowGenerator():
     def __init__(self, input_width: int, label_width: int, shift: int,
@@ -361,6 +323,40 @@ class WindowGenerator():
         ds = ds.map(self.split_window)
 
         return ds
+
+    def add_local_extrema(self):
+        """Add extra column (local min and max categorical type) to dataframe"""
+        ndarray = self.__data['Close'].to_numpy()
+        loc_max_indx = argrelextrema(ndarray, np.greater)
+        loc_min_indx = argrelextrema(ndarray, np.less)
+        self.__data['Loc_max'] = 0
+        for el in loc_max_indx:
+            self.__data.iloc[el, -1] = 1
+        self.__data['Loc_min'] = 0
+        for el in loc_min_indx:
+            self.__data.iloc[el, -1] = 1
+
+        self.__data['Loc_max'] = self.__data.Loc_max.astype('category')
+        self.__data['Loc_min'] = self.__data.Loc_min.astype('category')
+
+    def normalization(self, data : pd.DataFrame) -> pd.DataFrame:
+        if type(data).__name__ != 'NoneType':
+            norm_data = data.copy() 
+            for col in norm_data.columns:
+                if norm_data[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
+                    if self.norm_algorythm in ['std']:       
+                        self.mean[col] = data[col].mean()
+                        self.std[col] = data[col].std()
+                        norm_data[col] = (data[col] - self.mean[col])/self.std[col] 
+                    elif self.norm_algorythm in ['minmax']:            
+                        self.max[col] = data[col].max()
+                        self.min[col] = data[col].min()
+                        norm_data[col] = (data[col] - self.min[col])/(self.max[col]-self.min[col])
+                    else:
+                        sys.exit('No normalization algorythm found or given')
+            norm_data = norm_data.round(self.accuracy)
+            return norm_data
+        return 
 
     @property
     def train(self):
