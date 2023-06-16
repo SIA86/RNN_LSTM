@@ -141,7 +141,6 @@ class ProcessData():
         Returns:
         ----------
             data - pd.DataFrame raw data
-
         """                            
         self.path = path
         self.accuracy = accuracy
@@ -206,8 +205,7 @@ class ProcessData():
         info = '\n'.join([
             f'\nDATA INFO:',
             f'{type(self.data)}',
-            f'DatetimeIndex: {self.data.index.argmax()} entries, from {self.data.index[0]} to {self.data.index[-1]}',
-            f'Normalization algorythm - {self.norm_algorythm if not self.norm_algorythm else self.norm_algorythm.upper()}',
+            f'DatetimeIndex: {self.data.index.argmax()} entries, \nfrom {self.data.index[0]} to {self.data.index[-1]}',
             f'Data columns (total {len(self.data.columns)}):',
             f'------------------------------------',
             f'# |  Name{self.white_space("Name")}  |  Type  ',
@@ -219,14 +217,6 @@ class ProcessData():
         info = info + f'\n------------------------------------'
 
         return info
-
-data = ProcessData('data\SPFB.Si_220511_230607_5min.csv', accuracy=6)  #get data from given csv file
-data.add_rolling_average(period=50)
-data.add_rolling_average()
-data.add_standart_deviation()
-data.add_standart_deviation(period=50)
-data.add_standart_deviation(period=25)
-data.plot()
 
 class WindowGenerator():
     def __init__(self, input_width: int, label_width: int, shift: int,
