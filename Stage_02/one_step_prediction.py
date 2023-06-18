@@ -19,7 +19,7 @@ LOSS = 'mean_absolute_error'
 METR = 'mean_absolute_error'
 
 #path and filenames
-PATH = f'data{os.sep}feed{os.sep}data_0-40000.csv'
+PATH = f'data\SPFB.Si_220511_230607_5min.csv'
 KERAS_MODEL_NAME = f'models{os.sep}model(#0036)'
 PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0036_prediction.csv'
 

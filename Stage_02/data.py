@@ -161,7 +161,7 @@ class ProcessData():
                     '<CLOSE>': 'Close',
                     '<VOL>': 'Volume'})
         df.index = df.index.rename('Date')
-        df = df.iloc[:,:4] #drop volume
+        df = df.iloc[-500:,:4] #drop volume
         return df
 
     @property
@@ -219,12 +219,16 @@ class ProcessData():
         return info
 
 class WindowGenerator():
-    def __init__(self, data: pd.DataFrame, input_width: int, label_width:int, shift:int, warm_up:int, label_columns: str = ['Close']):
-        # Work out the label column indices.
-        self.label_columns = label_columns
+    def __init__(self, data: pd.DataFrame, input_width: int, label_width:int, shift:int, warm_up:int, label_columns: str = ['Close'], n_algorythm: str = 'STD'):
+        # Normalization options
+        self.norm_algorythm = n_algorythm.lower()
+        
+        # Store data
+        self.data = data
+
+        # Work out the label column
         if label_columns is not None:
-            self.label_columns_indices = {name: i for i, name in enumerate(label_columns)}
-        self.column_indices = {name: i for i, name in enumerate(data.columns)}
+            self.label_columns = label_columns
 
         # Work out the window parameters.
         self.input_width = input_width
@@ -233,13 +237,13 @@ class WindowGenerator():
         self.warm_up = warm_up
 
         self.total_window_size = warm_up + input_width + shift
-
+               
         self.input_slice = slice(warm_up, warm_up+ input_width)
         self.input_indices = np.arange(self.total_window_size)[self.input_slice]
 
         self.label_start = self.total_window_size - self.label_width
-        self.labels_slice = slice(self.label_start, None)
-        self.label_indices = np.arange(self.total_window_size)[self.labels_slice]
+        self.label_slice = slice(self.label_start, self.total_window_size)
+        self.label_indices = np.arange(self.total_window_size)[self.label_slice]
 
     def __repr__(self):
         return '\n'.join([
@@ -247,43 +251,63 @@ class WindowGenerator():
             f'Input indices: {self.input_indices}',
             f'Label indices: {self.label_indices}',
             f'Label column name(s): {self.label_columns}'])
+    
+    def process_data(self, data: pd.DataFrame) -> Tuple[np.ndarray, ...]:
+        window = self.__normalization(self.__add_local_extrema(data))
+        input = window[self.input_slice]
+        label = window[self.label_slice]
+        if self.label_columns is not None:
+            label = label[self.label_columns]
+        input = input.to_numpy()
+        label = label.to_numpy().squeeze(axis=(1,))
+
+        return input, label
        
-    def add_local_extrema(self):
+    def __add_local_extrema(self, data : pd.DataFrame) ->  pd.DataFrame:
         """Add extra column (local min and max categorical type) to dataframe"""
-        ndarray = self.__data['Close'].to_numpy()
-        loc_max_indx = argrelextrema(ndarray, np.greater)
-        loc_min_indx = argrelextrema(ndarray, np.less)
-        self.__data['Loc_max'] = 0
-        for el in loc_max_indx:
-            self.__data.iloc[el, -1] = 1
-        self.__data['Loc_min'] = 0
-        for el in loc_min_indx:
-            self.__data.iloc[el, -1] = 1
+        ndarray = data.iloc[0 : self.warm_up + self.input_width, -1].to_numpy()
+        df = data.copy()
+        loc_max_indx = argrelextrema(ndarray, np.greater)[0]
+        loc_min_indx = argrelextrema(ndarray, np.less)[0]
+        df['Loc_max'] = np.NaN
+        df['Loc_min'] = np.NaN
+        for indx in range(0, self.warm_up + self.input_width):
+            df.iloc[indx, -1] = 1 if indx in loc_min_indx else 0
+            df.iloc[indx, -2] = 1 if indx in loc_max_indx else 0
+        
+        df.loc[:, 'Loc_max'] = df.Loc_max.astype('category')
+        df.loc[:, 'Loc_min'] = df.Loc_min.astype('category')
 
-        self.__data['Loc_max'] = self.__data.Loc_max.astype('category')
-        self.__data['Loc_min'] = self.__data.Loc_min.astype('category')
+        return df
 
-    def normalization(self, data : pd.DataFrame) -> pd.DataFrame:
-        if type(data).__name__ != 'NoneType':
-            norm_data = data.copy() 
-            for col in norm_data.columns:
-                if norm_data[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
-                    if self.norm_algorythm in ['std']:       
-                        self.mean[col] = data[col].mean()
-                        self.std[col] = data[col].std()
-                        norm_data[col] = (data[col] - self.mean[col])/self.std[col] 
-                    elif self.norm_algorythm in ['minmax']:            
-                        self.max[col] = data[col].max()
-                        self.min[col] = data[col].min()
-                        norm_data[col] = (data[col] - self.min[col])/(self.max[col]-self.min[col])
-                    else:
-                        sys.exit('No normalization algorythm found or given')
-            norm_data = norm_data.round(self.accuracy)
-            return norm_data
-        return 
+    def __normalization(self, data : pd.DataFrame) -> pd.DataFrame:
+        norm_data = data.copy() 
+        for col in norm_data.columns:
+            if norm_data[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
+                if self.norm_algorythm in ['std']:       
+                    norm_data[col] = (data[col] - data[col].mean())/data[col].std() 
+                elif self.norm_algorythm in ['minmax']:            
+                    norm_data[col] = (data[col] - data[col].min())/(data[col].max()-data[col].min())
+                else:
+                    sys.exit('No normalization algorythm found or given')
+        norm_data = norm_data.round(6)
 
+        return norm_data
+        
 
+    def get_dataset(self):
+        inputs = []
+        labels = []
+        for window in self.data.rolling(self.total_window_size):
+            if len(window) == self.total_window_size:
+                input, label = self.process_data(window)
+                inputs.append(input)
+                labels.append(label)
+        
+        return inputs, labels
 
-
+    @property
+    def dataset(self):
+        return self.get_dataset()
 
     
