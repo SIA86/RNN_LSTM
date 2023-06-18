@@ -13,15 +13,15 @@ SHIFT = 1
 LABEL_NAMES = ['Close']
 
 #rnn options
-NEURONS = 48
+NEURONS = 1
 L_RATE = 0.00003
 LOSS = 'mean_absolute_error'
 METR = 'mean_absolute_error'
 
 #path and filenames
 PATH = f'data\SPFB.Si_220511_230607_5min.csv'
-KERAS_MODEL_NAME = f'models{os.sep}model(#0036)'
-PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0036_prediction.csv'
+KERAS_MODEL_NAME = f'models{os.sep}model(#0001)'
+PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0001_prediction.csv'
 
 def create_uncompiled_model() -> tf.keras.models.Sequential:
     # define a sequential model
@@ -89,24 +89,21 @@ def plot_loss(model: tf.keras.models.Sequential) -> None:
 
 
 def main():
-    data = ProcessData(PATH, norm_algorythm=NORM, accuracy=ACC, )  #get data from given csv file
-    data.add_local_extrema()
-
+    data = ProcessData(PATH, accuracy=ACC, )  #get data from given csv file
     print(data)
-
     data.plot()
-    print(data.data['Close'].describe())
+   
+    train_df, val_df, test_df = Utils.split_data(data.data, 0.8, 0.2)
 
-    train_df, val_df, test_df = map(data.normalization, Utils.split_data(data.data, split=SPLIT, val=VAL))
-
-    print(train_df.head(10))
-
-    dataset = WindowGenerator(INP_SIZE, LABEL_SIZE, SHIFT, train_df=train_df, val_df=val_df, test_df=test_df, label_columns=LABEL_NAMES)
-    train_ds, val_ds, test_ds = dataset.train, dataset.val, dataset.test
+    ds = WindowGenerator(5, 1, 1, 5, train_df=train_df, val_df=val_df, test_df=test_df, label_columns=['Close'], n_algorythm="std")
+    x_train, y_train = ds.train
+    x_test, y_test = ds.test
+    #x_val, y_val  = ds.val 
+    val_ds = (x_val, y_val) = ds.val
     
     
-    print(f'Data set shape - {list(train_ds.as_numpy_iterator())[0][0].shape}')
-    print(f'Lable set shape - {list(train_ds.as_numpy_iterator())[0][1].shape}')
+    print(f'Inputs type: {type(x_train).__name__} of {type(x_train[0]).__name__}, shape: {x_train[0].shape}')
+    print(f'Labels type: {type(y_train).__name__} of {type(y_train[0]).__name__}, shape: {y_train[0].shape}')      
 
     #checkpoint_path = KERAS_MODEL_NAME +f"{os.sep}cp.ckpt"
     checkpoint_path = KERAS_MODEL_NAME
@@ -122,13 +119,14 @@ def main():
             print('Loading trained model')
             n_model = create_model()
             n_model.load_weights(checkpoint_path)
-            n_model.evaluate(test_ds, batch_size=50)
+            n_model.evaluate(x_test, y_test, batch_size=50)
             n_model.save('model#35')
             print(f'Weights loaded successfully')          
         except Exception:
             print('No saved model')
             model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
                 filepath=checkpoint_path,
+                save_weights_only=True
                 save_best_only=True,
                 monitor='val_mean_absolute_error',
                 mode='min',
@@ -136,14 +134,14 @@ def main():
             )
             
             model = create_model() #create model
-            history = model.fit(train_ds, epochs=75, validation_data = val_ds, callbacks=[model_checkpoint_callback]) #fit model
+            history = model.fit(x_train, y_train, epochs=20, validation_data = val_ds, callbacks=[model_checkpoint_callback]) #fit model
             #model.summary()
             plot_loss(history)
-            #n_model = create_model()
-            #n_model.load_weights(checkpoint_path)
-            n_model = tf.keras.models.load_model(KERAS_MODEL_NAME)
+            n_model = create_model()
+            n_model.load_weights(checkpoint_path)
+            #n_model = tf.keras.models.load_model(KERAS_MODEL_NAME)
             print('Evaluate model test part')
-            n_model.evaluate(test_ds, batch_size=50)
+            n_model.evaluate(x_test, y_test, batch_size=50)
 
         forecast = forecasting(n_model, test_df)
         df = test_df.copy() #copy data to get datetime index

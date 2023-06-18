@@ -219,12 +219,16 @@ class ProcessData():
         return info
 
 class WindowGenerator():
-    def __init__(self, data: pd.DataFrame, input_width: int, label_width:int, shift:int, warm_up:int, label_columns: str = ['Close'], n_algorythm: str = 'STD'):
+    def __init__(self, input_width: int, label_width:int, shift:int, warm_up:int,
+                 train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFrame, 
+                 label_columns: str = ['Close'], n_algorythm: str = 'STD',):
         # Normalization options
         self.norm_algorythm = n_algorythm.lower()
         
         # Store data
-        self.data = data
+        self.train = train_df
+        self.val = val_df
+        self.test = test_df
 
         # Work out the label column
         if label_columns is not None:
@@ -295,10 +299,10 @@ class WindowGenerator():
         return norm_data
         
 
-    def get_dataset(self):
+    def get_dataset(self, data):
         inputs = []
         labels = []
-        for window in self.data.rolling(self.total_window_size):
+        for window in data.rolling(self.total_window_size):
             if len(window) == self.total_window_size:
                 input, label = self.process_data(window)
                 inputs.append(input)
@@ -307,7 +311,15 @@ class WindowGenerator():
         return inputs, labels
 
     @property
-    def dataset(self):
-        return self.get_dataset()
+    def train(self):
+        return self.get_dataset(self.train)
+    
+    @property
+    def val(self):
+        return self.get_dataset(self.val)
+    
+    @property
+    def test(self):
+        return self.get_dataset(self.test)
 
     
