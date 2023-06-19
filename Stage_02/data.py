@@ -161,7 +161,7 @@ class ProcessData():
                     '<CLOSE>': 'Close',
                     '<VOL>': 'Volume'})
         df.index = df.index.rename('Date')
-        df = df.iloc[-500:,:4] #drop volume
+        df = df.iloc[-1000:,:4] #drop volume
         return df
 
     @property
@@ -220,16 +220,10 @@ class ProcessData():
 
 class WindowGenerator():
     def __init__(self, input_width: int, label_width:int, shift:int, warm_up:int,
-                 train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFrame, 
-                 label_columns: str = ['Close'], n_algorythm: str = 'STD',):
+                label_columns: str = 'Close', n_algorythm: str = 'STD',):
         # Normalization options
         self.norm_algorythm = n_algorythm.lower()
-        
-        # Store data
-        self.train = train_df
-        self.val = val_df
-        self.test = test_df
-
+             
         # Work out the label column
         if label_columns is not None:
             self.label_columns = label_columns
@@ -249,28 +243,16 @@ class WindowGenerator():
         self.label_slice = slice(self.label_start, self.total_window_size)
         self.label_indices = np.arange(self.total_window_size)[self.label_slice]
 
-    def __repr__(self):
-        return '\n'.join([
-            f'Total window size: {self.total_window_size}',
-            f'Input indices: {self.input_indices}',
-            f'Label indices: {self.label_indices}',
-            f'Label column name(s): {self.label_columns}'])
-    
     def process_data(self, data: pd.DataFrame) -> Tuple[np.ndarray, ...]:
-        window = self.__normalization(self.__add_local_extrema(data))
-        input = window[self.input_slice]
-        label = window[self.label_slice]
-        if self.label_columns is not None:
-            label = label[self.label_columns]
-        input = input.to_numpy()
-        label = label.to_numpy().squeeze(axis=(1,))
-
-        return input, label
-       
-    def __add_local_extrema(self, data : pd.DataFrame) ->  pd.DataFrame:
-        """Add extra column (local min and max categorical type) to dataframe"""
-        ndarray = data.iloc[0 : self.warm_up + self.input_width, -1].to_numpy()
+        #save normalization coefficients for local window
         df = data.copy()
+        self.mean = df.mean()
+        self.std = df.std()
+        self.max = df.max()
+        self.min = df.min()
+
+        """Add extra column (local min and max categorical type) to dataframe"""
+        ndarray = df.iloc[0 : self.warm_up + self.input_width, -1].to_numpy()
         loc_max_indx = argrelextrema(ndarray, np.greater)[0]
         loc_min_indx = argrelextrema(ndarray, np.less)[0]
         df['Loc_max'] = np.NaN
@@ -282,44 +264,112 @@ class WindowGenerator():
         df.loc[:, 'Loc_max'] = df.Loc_max.astype('category')
         df.loc[:, 'Loc_min'] = df.Loc_min.astype('category')
 
-        return df
-
-    def __normalization(self, data : pd.DataFrame) -> pd.DataFrame:
-        norm_data = data.copy() 
-        for col in norm_data.columns:
-            if norm_data[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
+        """Normalize data"""
+        for col in df.columns:
+            if df[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
                 if self.norm_algorythm in ['std']:       
-                    norm_data[col] = (data[col] - data[col].mean())/data[col].std() 
+                    df[col] = (df[col] - self.mean[col])/self.std[col] 
                 elif self.norm_algorythm in ['minmax']:            
-                    norm_data[col] = (data[col] - data[col].min())/(data[col].max()-data[col].min())
+                    df[col] = (df[col] - self.min[col])/(self.max[col]-self.min[col])
                 else:
                     sys.exit('No normalization algorythm found or given')
-        norm_data = norm_data.round(6)
-
-        return norm_data
+        return df
+    
+    def __repr__(self):
+        return '\n'.join([
+            f'Total window size: {self.total_window_size}',
+            f'Input indices: {self.input_indices}',
+            f'Label indices: {self.label_indices}',
+            f'Label column name(s): {self.label_columns}'])
+    
+class TrainingWindowGenerator(WindowGenerator):
+    def __init__(self, input_width: int, label_width:int, shift:int, warm_up:int,
+                 label_columns: str = ['Close'], n_algorythm: str = 'STD',
+                 train_df: pd.DataFrame = None, val_df: pd.DataFrame = None, test_df: pd.DataFrame = None):
+        super().__init__(input_width, label_width, shift, warm_up, label_columns = label_columns, n_algorythm = n_algorythm)
         
+        # Store data
+        self.train_df = train_df
+        self.val_df = val_df
+        self.test_df = test_df
+    
+    def window_splitter(self, window): 
+        df = self.process_data(window)
+        input = df[self.input_slice]
+        label = df[self.label_slice]
+        if self.label_columns is not None:
+            label = label[self.label_columns]
+        input = input.to_numpy()
+        label = label.to_numpy().squeeze(axis=(1,))
 
+        return input, label
+       
     def get_dataset(self, data):
         inputs = []
         labels = []
         for window in data.rolling(self.total_window_size):
             if len(window) == self.total_window_size:
-                input, label = self.process_data(window)
+                input, label = self.window_splitter(window)
                 inputs.append(input)
                 labels.append(label)
-        
+        inputs = np.array(inputs)
+        labels = np.array(labels)
+
         return inputs, labels
 
     @property
     def train(self):
-        return self.get_dataset(self.train)
+        return self.get_dataset(self.train_df)
     
     @property
     def val(self):
-        return self.get_dataset(self.val)
+        return self.get_dataset(self.val_df)
     
     @property
     def test(self):
-        return self.get_dataset(self.test)
+        return self.get_dataset(self.test_df)
+
+
+class ForecastingWindowGenerator(WindowGenerator):
+    def __init__(self, input_width: int, label_width:int, shift:int, warm_up:int,
+                 forecasting_data: pd.DataFrame = None, 
+                 label_columns: str = ['Close'], n_algorythm: str = 'STD',):
+        super().__init__(input_width, label_width, shift, warm_up, label_columns = label_columns, n_algorythm = n_algorythm)
+
+        # Store data
+        self.forecast_df = forecasting_data
+
+    def window_splitter(self, window): 
+        df = self.process_data(window)
+        input = df[self.input_slice]
+        input = input.to_numpy()[np.newaxis]
+       
+        return input
+          
+    def get_prediction(self, model: tf.keras.models.Model) -> pd.DataFrame:
+        predictions = self.forecast_df.copy()
+        predictions = predictions.iloc[:, :4]
+        all_forecasts = []
+        #split window into for-loop
+        for window in self.forecast_df.rolling(self.total_window_size):
+            if len(window) != self.total_window_size:
+                all_forecasts.append(np.NaN)
+            else:
+                input = self.window_splitter(window)
+                #get prediction
+                forecast = model.predict(input)
+                #demormalization
+                if self.norm_algorythm == 'std':
+                    forecast = forecast * self.std.loc['Close'] + self.mean.loc['Close']
+                if self.norm_algorythm == 'minmax':
+                    forecast = forecast*(self.max.loc['Close'] - self.min.loc['Close']) + self.min.loc['Close']
+                #adding single prediction to list    
+                all_forecasts.append(forecast)
+        #create new column
+        predictions['Pred_Close'] = all_forecasts
+
+        return predictions
+
+   
 
     
