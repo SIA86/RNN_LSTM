@@ -15,9 +15,11 @@ class Analyzer():
     - проверяет совпадение предсказанного направления движения цены с фактическим 'MAtch'
     - позволяет отфильтровать результаты по колонкам
     """
-    def __init__(self, path):
+    def __init__(self, path, period):
         self.path = path
+        self.period = period
         self.data = self.__get_data()
+        
 
         self.filtered = None
         self.column_name = None
@@ -28,14 +30,19 @@ class Analyzer():
 
     def __get_data(self):
         df = pd.read_csv(self.path, index_col=0)
-        df = df[['Close', 'Predicted_close']]
-        df['Pred_Close_diff'] = df['Predicted_close'] -df['Close'] 
-        df['Fact_diff'] = df['Close'].diff().shift(-1)
+        df = df[['Close', 'Pred_Close']]
+        df['Pred_Close_diff'] = df['Pred_Close'] -df['Close'] 
+        df['Fact_diff'] = df['Close'].diff(periods=self.period).shift(-self.period)
+        #df['Pred_Pred_diff'] = df['Pred_Close'].diff()
         df = df.dropna()
         df['Loss'] = abs(df['Pred_Close_diff']-df['Fact_diff'])
+        df['std'] = df['Close'].rolling(10).std()
 
-        df.loc[((df['Pred_Close_diff'] >= 0) & (df['Fact_diff'] >= 0)) | ((df['Pred_Close_diff'] < 0) & (df['Fact_diff'] < 0)), 'Match'] = 1 
-        df.loc[((df['Pred_Close_diff'] >= 0) & (df['Fact_diff'] < 0)) | ((df['Pred_Close_diff'] < 0) & (df['Fact_diff'] >= 0)), 'Match'] = 0
+        df.loc[((df['Pred_Close_diff'] >= 0) & (df['Fact_diff'] >= 0)) | ((df['Pred_Close_diff'] < 0) & (df['Fact_diff'] < 0)), 'Match_PC'] = 1 
+        df.loc[((df['Pred_Close_diff'] >= 0) & (df['Fact_diff'] < 0)) | ((df['Pred_Close_diff'] < 0) & (df['Fact_diff'] >= 0)), 'Match_PC'] = 0
+
+        #df.loc[((df['Pred_Pred_diff'] >= 0) & (df['Fact_diff'] >= 0)) | ((df['Pred_Pred_diff'] < 0) & (df['Fact_diff'] < 0)), 'Match_PP'] = 1 
+        #df.loc[((df['Pred_Pred_diff'] >= 0) & (df['Fact_diff'] < 0)) | ((df['Pred_Pred_diff'] < 0) & (df['Fact_diff'] >= 0)), 'Match_PP'] = 0
 
         return df
 
@@ -67,15 +74,17 @@ class Analyzer():
         info = '\n'.join([
             f"{self.path.removeprefix(f'data{os.sep}predictions{os.sep}').removesuffix('.csv')} analyzing:",
             f"Mean loss (pt): {int(self.data['Loss'].mean())}",
-            f"Matching ratio: {int(self.data['Match'].value_counts()[1]/(self.data['Match'].value_counts()[1]+self.data['Match'].value_counts()[0])*100)}%"
+            f"Matching PC ratio: {int(self.data.value_counts('Match_PC', normalize=True)[1]*100)}%",
+            #f"Matching PP ratio: {int(self.data.value_counts('Match_PP', normalize=True)[1]*100)}%",
         ])
 
         if type(self.filtered).__name__ != 'NoneType':
             info = info + '\n'.join([
                 f"\nData filtered by column ['{self.column_name}']",
-                f"{f'Condition: {self.upper} > values > {self.down}' if self.inner else f'Condition: value > {self.upper} | value < {self.down}'}", 
+                f"{f'Condition: {self.down} < values < {self.upper}' if self.inner else f'Condition: value < {self.down} | value > {self.upper}'}", 
                 f"Data compression: {100 - int(self.filtered.shape[0]/self.data.shape[0]*100)}%",
-                f"Filtered matching ratio: {int(self.filtered['Match'].value_counts()[1]/(self.filtered['Match'].value_counts()[1]+self.filtered['Match'].value_counts()[0])*100)}%"
+                f"Filtered matching PC ratio: {int(self.filtered.value_counts('Match_PC', normalize=True)[1]*100)}%",
+                #f"Filtered matching PP ratio: {int(self.filtered.value_counts('Match_PP', normalize=True)[1]*100)}%",
             ])
         else:
             info = info + f"\nNo filtered data"
@@ -126,7 +135,7 @@ class Utils():
 
 
 class ProcessData():
-    def __init__(self, path: str, accuracy : int = 5,  norm_algorythm : str | None = None):   
+    def __init__(self, path: str, accuracy : int = 5):   
         """ 
         Creating dataframe object from *.csv file getting from finam.ru stock prices archive 
         and processing data for further dataset creation.
@@ -161,7 +170,7 @@ class ProcessData():
                     '<CLOSE>': 'Close',
                     '<VOL>': 'Volume'})
         df.index = df.index.rename('Date')
-        df = df.iloc[-1000:,:4] #drop volume
+        df = df.iloc[-10000:,:4] #drop volume
         return df
 
     @property
@@ -172,8 +181,8 @@ class ProcessData():
 
     def add_rolling_average(self, period: int = 10):
         """Add extra column (rolling average) to dataframe"""
-        self.__data[f'Average{period}'] = self.__data['Close'].rolling(period).mean()
-        self.plot_info['plot'].append(self.__data.columns[-1])    
+        self.__data[f'AvDiff{period}'] = self.__data['Close'] - self.__data['Close'].rolling(period).mean()
+        self.plot_info['subplot'].append(self.__data.columns[-1])    
 
     def add_standart_deviation(self, period: int = 10): 
         """Add extra column (rolling standart deviation) to dataframe"""    
@@ -246,11 +255,16 @@ class WindowGenerator():
     def process_data(self, data: pd.DataFrame) -> Tuple[np.ndarray, ...]:
         #save normalization coefficients for local window
         df = data.copy()
-        self.mean = df.mean()
-        self.std = df.std()
-        self.max = df.max()
-        self.min = df.min()
 
+        if self.norm_algorythm in ['std']:  
+            self.mean = df.mean()
+            self.std = df.std()     
+            df = round((df - self.mean)/self.std, ndigits=5) 
+        elif self.norm_algorythm in ['minmax']:    
+            self.max = df.max()
+            self.min = df.min()        
+            df = round((df - self.min)/(self.max-self.min), ndigits=5)
+            
         """Add extra column (local min and max categorical type) to dataframe"""
         ndarray = df.iloc[0 : self.warm_up + self.input_width, -1].to_numpy()
         loc_max_indx = argrelextrema(ndarray, np.greater)[0]
@@ -263,16 +277,7 @@ class WindowGenerator():
         
         df.loc[:, 'Loc_max'] = df.Loc_max.astype('category')
         df.loc[:, 'Loc_min'] = df.Loc_min.astype('category')
-
-        """Normalize data"""
-        for col in df.columns:
-            if df[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
-                if self.norm_algorythm in ['std']:       
-                    df[col] = (df[col] - self.mean[col])/self.std[col] 
-                elif self.norm_algorythm in ['minmax']:            
-                    df[col] = (df[col] - self.min[col])/(self.max[col]-self.min[col])
-                else:
-                    sys.exit('No normalization algorythm found or given')
+    
         return df
     
     def __repr__(self):
@@ -300,7 +305,7 @@ class TrainingWindowGenerator(WindowGenerator):
         if self.label_columns is not None:
             label = label[self.label_columns]
         input = input.to_numpy()
-        label = label.to_numpy().squeeze(axis=(1,))
+        label = label.to_numpy()
 
         return input, label
        
@@ -314,8 +319,13 @@ class TrainingWindowGenerator(WindowGenerator):
                 labels.append(label)
         inputs = np.array(inputs)
         labels = np.array(labels)
+        if np.isnan(np.min(inputs)) or np.isnan(np.min(labels)):
+            sys.exit('NAN')
+        ds = tf.data.Dataset.from_tensor_slices((inputs, labels))
+        ds = ds.batch(64)
+        ds = ds.prefetch(1)
 
-        return inputs, labels
+        return ds
 
     @property
     def train(self):
@@ -356,8 +366,11 @@ class ForecastingWindowGenerator(WindowGenerator):
                 all_forecasts.append(np.NaN)
             else:
                 input = self.window_splitter(window)
+                ds = tf.data.Dataset.from_tensor_slices(input)
+                ds = ds.batch(64)
+                ds = ds.prefetch(1)
                 #get prediction
-                forecast = model.predict(input)
+                forecast = model.predict(ds, verbose=0).squeeze()
                 #demormalization
                 if self.norm_algorythm == 'std':
                     forecast = forecast * self.std.loc['Close'] + self.mean.loc['Close']
