@@ -12,7 +12,7 @@ class Analyzer():
     Помогает проанализировать полученные от НС данные. 
     - высчитывает среднюю ошибку предсказаний 'Loss'
     - высчитывает величину изменения цены на основании предсказаний 'Pred_Close_diff' 
-    - проверяет совпадение предсказанного направления движения цены с фактическим 'MAtch'
+    - проверяет совпадение предсказанного направления движения цены с фактическим 'Match'
     - позволяет отфильтровать результаты по колонкам
     """
     def __init__(self, path):
@@ -20,25 +20,26 @@ class Analyzer():
         self.data = self.__get_data()
 
         self.filtered = None
-        self.column_name = None
         self.upper = None
         self.down = None
         self.inner = None
         
 
     def __get_data(self):
-        df = pd.read_csv(self.path, index_col=0)
-        df = df[['Close', 'Predicted_close']]
-        df['Pred_Close_diff'] = df['Predicted_close'] -df['Close'] 
-        df['Fact_diff'] = df['Close'].diff().shift(-1)
-        df = df.dropna()
-        df['Loss'] = abs(df['Pred_Close_diff']-df['Fact_diff'])
+        df = pd.read_csv(self.path, index_col=0) #читаем данные из .csv файла
+        df = df[['Close', 'Predicted_close']] #отбрасываем все лишнее
+        df['Pred_Close_diff'] = df['Predicted_close'] -df['Close']  #вычисляем величину предсказания
+        df['Fact_diff'] = df['Close'].diff().shift(-1) #вычисляем реальное изменнеие цены и сдвигаем его на один ряд вверх
+        df = df.dropna() #отбрасываем пустые ряды
+        df['Loss'] = abs(df['Pred_Close_diff']-df['Fact_diff']) #вычисляем ошибку
 
+        #если предсказанное и фактическое изменение цены совпадает по знаку то присваиваем категорию 1, иначе - 0
         df.loc[((df['Pred_Close_diff'] >= 0) & (df['Fact_diff'] >= 0)) | ((df['Pred_Close_diff'] < 0) & (df['Fact_diff'] < 0)), 'Match'] = 1 
         df.loc[((df['Pred_Close_diff'] >= 0) & (df['Fact_diff'] < 0)) | ((df['Pred_Close_diff'] < 0) & (df['Fact_diff'] >= 0)), 'Match'] = 0
 
         return df
 
+    #фильтрация данных по величине предсказания выше по модулю средней ошибки
     def filtration(self): 
         self.column_name = 'Pred_Close_diff'
         self.upper = int(self.data['Loss'].mean())
@@ -46,30 +47,30 @@ class Analyzer():
         self.filtered = self.data.copy()
         self.filtered = self.filtered.loc[(self.data['Pred_Close_diff'] < self.down) | (self.data['Pred_Close_diff'] > self.upper)]
 
+    #фильтрация данных с возможностью настройки параметров
     def custom_filtration(self, column_name : str = 'Pred_Close_diff', upper: int = None, down: int = None, inner: bool = False):
-        self.upper = upper
-        self.down = down
-        self.column_name = column_name
-        self.inner = inner
+        self.upper = upper #верхняя граница
+        self.down = down #нижняя граница
+        self.inner = inner #выбор фильтрации внутри диапазона или снаружи
         self.filtered = self.data.copy()
         if self.inner:
             if self.upper and self.down:
-                self.filtered = self.filtered.loc[(self.data[column_name] <= upper) & (self.data['Pred_Close_diff'] >= down)]
+                self.filtered = self.filtered.loc[(self.data[column_name] <= upper) & (self.data['column_name'] >= down)]
             elif self.upper:
                 self.filtered = self.filtered.loc[(self.data[column_name] <= upper)]
             else:
                 self.filtered = self.filtered.loc[(self.data[column_name] >= down)]
         else:
-            self.filtered = self.filtered.loc[(self.data[column_name] > upper) | (self.data['Pred_Close_diff'] < down)]
+            self.filtered = self.filtered.loc[(self.data[column_name] > upper) | (self.data['column_name'] < down)]
                 
-        
+    #вывод данных    
     def __str__(self):        
         info = '\n'.join([
             f"{self.path.removeprefix(f'data{os.sep}predictions{os.sep}').removesuffix('.csv')} analyzing:",
             f"Mean loss (pt): {int(self.data['Loss'].mean())}",
             f"Matching ratio: {int(self.data['Match'].value_counts()[1]/(self.data['Match'].value_counts()[1]+self.data['Match'].value_counts()[0])*100)}%"
         ])
-
+        #если данные были отфильтрованы
         if type(self.filtered).__name__ != 'NoneType':
             info = info + '\n'.join([
                 f"\nData filtered by column ['{self.column_name}']",
@@ -88,16 +89,17 @@ class Utils():
     Набор полезных утилит для работы с данными.
     
     split data - разбивает базу данных на части (train, val, test) для последующей передачи нейронной сети
-    data_divider - помогает разбить данные на части
+    data_divider - помогает разбить файл с данными на несколько файлов
     """
     @staticmethod
     def split_data(data : pd.DataFrame | np.ndarray, 
                 split: float, val : float | None = None
                 ) -> Tuple[pd.DataFrame, ...] | Tuple[np.ndarray, ...]:
 
-        size = int(len(data)*split)
+        size = int(len(data)*split) 
         spl_test = data[size:]
-        if val:
+
+        if val: #если нужно выделить validation part
             val_size = int(size*(1-val))       
             spl_train = data[:val_size]
             spl_val = data[val_size:size]
@@ -109,15 +111,26 @@ class Utils():
     
     @staticmethod
     def data_divider(path : str, length : int, shift : int = 0, start: int = 0):
+        """
+        path - путь к файлу
+        length - количество строк в новых файлах
+        shift - сдвиг первой строки для следующего файла относительно старта
+        start - начало первой строки первого файла
+
+        """
         filepath_dir = os.path.dirname(path)
         with open(path, 'r') as file_reader:
-            header = file_reader.readline()
-            data = file_reader.readlines()
+            header = file_reader.readline() #сохраняем заголовок
+            data = file_reader.readlines() #читаем все строки
+
+        #если нужно создать несколько файлов
         if shift:
             for pos in range(start, len(data)-length, shift):
                 with open(f'{filepath_dir}{os.sep}data_{pos}-{length+pos}.csv', 'w') as fw:
                     fw.write(header)
                     fw.writelines(data[pos:length+pos])
+
+        #если нужно создать только один файл
         else:
             with open(f'{filepath_dir}{os.sep}data_{start}-{length+start}.csv', 'w') as fw:
                     fw.write(header)
@@ -171,7 +184,7 @@ class ProcessData():
 
     @property
     def data(self):
-        self.__data = self.__data.dropna()
+        self.__data = self.__data.dropna() #drop rows with NaN eltments
         self.__data = self.__data.round(self.accuracy)
         return self.__data
 
@@ -206,7 +219,7 @@ class ProcessData():
         if type(data).__name__ != 'NoneType':
             norm_data = data.copy() 
             for col in norm_data.columns:
-                if norm_data[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: 
+                if norm_data[col].dtype in ['float64', 'float32', 'int64', 'int32', 'int16', 'int8']: #to avoid of categorical type normalization
                     if self.norm_algorythm in ['std']:       
                         self.mean[col] = data[col].mean()
                         self.std[col] = data[col].std()
@@ -387,10 +400,5 @@ class WindowGenerator():
 
 
 
-""" train_df, val_df, test_df = a.split_data()
-b = WindowGenerator(25,10,10, train_df=train_df, val_df=val_df, test_df=test_df, label_columns=['Close'])
-train_set, val_set, test_set = b.train, b.val, b.test
-b.plot(plot_col='Close')
-print('Hello') """
-   
+
     

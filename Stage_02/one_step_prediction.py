@@ -7,9 +7,9 @@ SPLIT = 0.8 #size of training set
 VAL = 0.2
 
 #dataset options
-INP_SIZE = 50 #length of candles sequence to analize
+INP_SIZE = 5 #length of candles sequence to analize
 LABEL_SIZE = 1 #length of target 
-SHIFT = 5 # distance between analyzing data and target
+SHIFT = 1 # distance between analyzing data and target
 WARM_UP = 100
 LABEL_NAMES = ['Close']
 
