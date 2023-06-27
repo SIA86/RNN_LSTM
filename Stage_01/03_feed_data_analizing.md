@@ -399,20 +399,20 @@ std       1142.413409\
 min      67839.000000\
 max      72806.000000
 
-#0035_data_30000-35000_01 analyzing:
-Mean loss (pt): 29
-Matching ratio: 96%
-Data filtered by column ['Pred_Close_diff']
-Condition: value > 29 | value < -29
-Data compression: 37%
+#0035_data_30000-35000_01 analyzing:\
+Mean loss (pt): 29\
+Matching ratio: 96%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 29 | value < -29\
+Data compression: 37%\
 Filtered matching ratio: 98%
 
-#0035_contr_part_01 analyzing:
-Mean loss (pt): 38
-Matching ratio: 95%
-Data filtered by column ['Pred_Close_diff']
-Condition: value > 38 | value < -38
-Data compression: 41%
+#0035_contr_part_01 analyzing:\
+Mean loss (pt): 38\
+Matching ratio: 95%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 38 | value < -38\
+Data compression: 41%\
 Filtered matching ratio: 97%
 
 ***
