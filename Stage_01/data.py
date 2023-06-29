@@ -179,7 +179,7 @@ class ProcessData():
                     '<CLOSE>': 'Close',
                     '<VOL>': 'Volume'})
         df.index = df.index.rename('Date')
-        df = df.iloc[:,:4] #drop volume
+        df = df.iloc[-5000:,:4] #drop volume
         return df
 
     @property

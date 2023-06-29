@@ -7,7 +7,7 @@ SPLIT = 0.8 #size of training set
 VAL = 0.2
 
 #dataset options
-INP_SIZE = 5 #length of candles sequence to analize
+INP_SIZE = 10 #length of candles sequence to analize
 LABEL_SIZE = 1 #length of target 
 SHIFT = 1 # distance between analyzing data and target
 WARM_UP = 100
@@ -15,15 +15,15 @@ LABEL_NAMES = ['Close']
 
 #rnn options
 NEURONS = 8
-L_RATE = 0.00003
-EPOCH = 200
-LOSS = 'mean_absolute_error'
+L_RATE = 0.0001
+EPOCH = 50
+LOSS = 'poisson'
 METR = 'mean_absolute_error'
 
 #path and filenames
 PATH = f'data\SPFB.Si_220511_230607_5min.csv'
-KERAS_MODEL_NAME = f'models{os.sep}model(#0007)'
-PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0007_prediction.csv'
+KERAS_MODEL_NAME = f'models{os.sep}model(#0009)'
+PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0009_prediction.csv'
 
 def create_uncompiled_model() -> tf.keras.models.Sequential:
     # define a sequential model
@@ -81,9 +81,6 @@ def plot_loss(model: tf.keras.models.Sequential) -> None:
 def main():
     print('Loading data...')
     data = ProcessData(PATH, accuracy=ACC, )  #get data from given csv file
-    data.add_rolling_average(period=50)
-    data.add_rolling_average(period=100)
-    data.add_rolling_average(period=200)
     print(data)
     #data.plot()
    

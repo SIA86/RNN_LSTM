@@ -128,4 +128,44 @@ Filtered matching PC ratio: 58%\
 Filtered matching PP ratio: 48%
 
 ***
-Точность пердсказаний не превышает 54%, что практически совпадает с точностью предсказаний без передачи НС сведений о локальных экстремумах.
+### **model(#0007)**
+FEATURES: ['Open','High', 'Low', 'Close', 'Loc_Min', Loc_Max]\
+INP_SIZE = 10\
+SHIFT = 1\
+L_RATE = 0.0001\
+LOSS = 'mean_squared_logarithmic_error'\
+EPOCH = 50
+
+![Prediction](image/%230007_closeup.png)
+
+#0007_prediction analyzing:\
+Mean loss (pt): 73\
+Matching PC ratio: 54%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value < -73 | value > 73\
+Data compression: 71%\
+Filtered matching PC ratio: 53%
+
+***
+### **model(#0008)**
+FEATURES: ['Open','High', 'Low', 'Close', 'Loc_Min', Loc_Max]\
+INP_SIZE = 10\
+SHIFT = 1\
+L_RATE = 0.0001\
+LOSS = 'mean_squared_error'\
+EPOCH = 50
+
+![Prediction](image/%230008_closeup.png)
+
+#0008_prediction analyzing:\
+Mean loss (pt): 45\
+Matching PC ratio: 50%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value < -45 | value > 45\
+Data compression: 75%\
+Filtered matching PC ratio: 53%
+
+В сравнении с model(#0002) никаких существенных отличий изменение loss function не дало.
+
+***
+Точность пердсказаний всех моделей не превышает 54%, что практически совпадает с точностью предсказаний без передачи НС сведений о локальных экстремумах.
