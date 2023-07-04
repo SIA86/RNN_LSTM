@@ -139,7 +139,7 @@ class Utils():
 
 
 class ProcessData():
-    def __init__(self, path: str, accuracy : int = 5,  norm_algorythm : str | None = None):   
+    def __init__(self, path: str, accuracy : int = 5,  norm_algorythm : str | None = None, finam: bool = True):   
         """ 
         Creating dataframe object from *.csv file getting from finam.ru stock prices archive 
         and processing data for further dataset creation.
@@ -161,15 +161,19 @@ class ProcessData():
         self.path = path
         self.accuracy = accuracy
         self.norm_algorythm = norm_algorythm
-
-        self.__data = self.__get_data()
+        
+        if finam:
+            self.__data = self.__get_data_from_finam()
+        else:
+            self.__data = self.__get_data_from_quik()
+        
         self.std = self.__data.std()
         self.mean = self.__data.mean()
         self.min = self.__data.min()
         self.max = self.__data.max()
         
 
-    def __get_data(self):
+    def __get_data_from_finam(self):
         df = pd.read_csv(self.path, parse_dates=[[2,3]], index_col=0)
         df = df.iloc[:,2:] #drop useless  columns !set-10000 for testing purposes
         df = df.rename(
@@ -179,7 +183,13 @@ class ProcessData():
                     '<CLOSE>': 'Close',
                     '<VOL>': 'Volume'})
         df.index = df.index.rename('Date')
-        df = df.iloc[-5000:,:4] #drop volume
+        df = df.iloc[:,:4] #drop volume
+        return df
+
+    def __get_data_from_quik(self):
+        df = pd.read_csv(self.path, index_col='datetime', sep='\t')
+        df.index = pd.to_datetime(df.index)
+        df = df[['open', 'high', 'low', 'close', 'open_interest']] # выбираем нужные нам колонки
         return df
 
     @property

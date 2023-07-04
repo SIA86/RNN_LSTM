@@ -7,21 +7,21 @@ SPLIT = 0.8 #size of training set
 VAL = 0.2
 
 #dataset options
-INP_SIZE = 5 #length of candles sequence to analize
+INP_SIZE = 15 #length of candles sequence to analize
 LABEL_SIZE = 1
 SHIFT = 1
 LABEL_NAMES = ['Close']
 
 #rnn options
-NEURONS = 48
-L_RATE = 0.00003
+NEURONS = 8
+L_RATE = 0.001
 LOSS = 'mean_absolute_error'
 METR = 'mean_absolute_error'
 
 #path and filenames
-PATH = f'data{os.sep}feed{os.sep}data_0-40000.csv'
-KERAS_MODEL_NAME = f'models{os.sep}model(#0036)'
-PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0036_prediction.csv'
+PATH = f'data{os.sep}SPBFUT_SiU3_M5.csv'
+KERAS_MODEL_NAME = f'models{os.sep}model(#0037)'
+PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0037_prediction.csv'
 
 def create_uncompiled_model() -> tf.keras.models.Sequential:
     # define a sequential model
@@ -89,9 +89,7 @@ def plot_loss(model: tf.keras.models.Sequential) -> None:
 
 
 def main():
-    data = ProcessData(PATH, norm_algorythm=NORM, accuracy=ACC, )  #get data from given csv file
-    data.add_local_extrema()
-
+    data = ProcessData(PATH, norm_algorythm=NORM, accuracy=ACC, finam=False )  #get data from given csv file
     print(data)
 
     data.plot()
