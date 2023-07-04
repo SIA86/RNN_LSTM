@@ -277,17 +277,50 @@ Filtered matching ratio: 78%
 ***
 
 ### **model(#0037)**
-Модель имеет черты - ['Open','High', 'Low', 'Close', ]
+Модель имеет черты - ['Open','High', 'Low', 'Close', 'Open_interest']
 
-Predicted data analyzing:\
-Mean loss (pt): 101\
-Matching ratio: 73%\
+#0037_prediction analyzing:\
+Mean loss (pt): 76\
+Matching ratio: 50%\
 Data filtered by column ['Pred_Close_diff']\
-Condition: value > 101 | value < -101\
-Data compression: 63%\
-Filtered matching ratio: 78%
+Condition: value > 76 | value < -76\
+Data compression: 79%\
+Filtered matching ratio: 48%
 
-Добавление черты "Corelation14" понизило точность предсказаний.
+Добавление черты 'Open_interest' не дало никаких результатов
 
-![Example](image/%23016_1.png)
-![Example](image/%23016_2.png)
+![Example](image/%230037_1.png)
+![Example](image/%230037_2.png)
+
+### **model(#0038)**
+Модель имеет черты - ['Open','High', 'Low', 'Close', 'Ask', 'Offer']
+
+#0038_prediction analyzing:\
+Mean loss (pt): 95\
+Matching ratio: 49%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 95 | value < -95\
+Data compression: 73%\
+Filtered matching ratio: 51%
+
+Добавление черты 'Ask', 'Offer' не дало никаких результатов
+
+![Example](image/%230038_1.png)
+![Example](image/%230038_2.png)
+
+
+### **model(#0039)**
+Модель имеет черты - ['Open','High', 'Low', 'Close', 'Ask', 'Offer', 'Open_interest']
+
+#0039_prediction analyzing:\
+Mean loss (pt): 117\
+Matching ratio: 49%\
+Data filtered by column ['Pred_Close_diff']\
+Condition: value > 117 | value < -117\
+Data compression: 66%\
+Filtered matching ratio: 45%
+
+Добавление черты 'Ask', 'Offer', 'Open_interest' не дало никаких результатов
+
+![Example](image/%230039_1.png)
+![Example](image/%230039_2.png)

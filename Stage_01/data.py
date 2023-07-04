@@ -189,7 +189,7 @@ class ProcessData():
     def __get_data_from_quik(self):
         df = pd.read_csv(self.path, index_col='datetime', sep='\t')
         df.index = pd.to_datetime(df.index)
-        df = df[['open', 'high', 'low', 'close', 'open_interest']] # выбираем нужные нам колонки
+        df = df[['Open', 'High', 'Low', 'Close', 'Ask', 'Offer', 'Open_interest']] # выбираем нужные нам колонки
         return df
 
     @property

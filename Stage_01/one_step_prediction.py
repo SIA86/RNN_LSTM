@@ -20,8 +20,8 @@ METR = 'mean_absolute_error'
 
 #path and filenames
 PATH = f'data{os.sep}SPBFUT_SiU3_M5.csv'
-KERAS_MODEL_NAME = f'models{os.sep}model(#0037)'
-PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0037_prediction.csv'
+KERAS_MODEL_NAME = f'models{os.sep}model(#0039)'
+PREDICTION_NAME = f'data{os.sep}predictions{os.sep}#0039_prediction.csv'
 
 def create_uncompiled_model() -> tf.keras.models.Sequential:
     # define a sequential model
@@ -121,25 +121,26 @@ def main():
             n_model = create_model()
             n_model.load_weights(checkpoint_path)
             n_model.evaluate(test_ds, batch_size=50)
-            n_model.save('model#35')
+            #n_model.save('model#35')
             print(f'Weights loaded successfully')          
         except Exception:
             print('No saved model')
             model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
                 filepath=checkpoint_path,
                 save_best_only=True,
+                save_weights_only=True,
                 monitor='val_mean_absolute_error',
                 mode='min',
                 verbose=1
             )
             
             model = create_model() #create model
-            history = model.fit(train_ds, epochs=75, validation_data = val_ds, callbacks=[model_checkpoint_callback]) #fit model
+            history = model.fit(train_ds, epochs=25, validation_data = val_ds, callbacks=[model_checkpoint_callback]) #fit model
             #model.summary()
             plot_loss(history)
-            #n_model = create_model()
-            #n_model.load_weights(checkpoint_path)
-            n_model = tf.keras.models.load_model(KERAS_MODEL_NAME)
+            n_model = create_model()
+            n_model.load_weights(checkpoint_path)
+            #n_model = tf.keras.models.load_model(KERAS_MODEL_NAME)
             print('Evaluate model test part')
             n_model.evaluate(test_ds, batch_size=50)
 
@@ -158,8 +159,6 @@ def main():
         df['Predicted_close'] = forecast #paste forecast array to dataframe
         df.to_csv(PREDICTION_NAME)
         
-
-
     analyzer = Analyzer(PREDICTION_NAME)
     analyzer.filtration()
     print(analyzer)
